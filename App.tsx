@@ -47,7 +47,7 @@ const initialNodes: Node<NodeData>[] = [
 ];
 
 const initialEdges: Edge[] = [
-    { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#000000', strokeWidth: 2 } }
+    { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#71717a', strokeWidth: 2 } }
 ];
 
 const AppContent = () => {
@@ -65,8 +65,8 @@ const AppContent = () => {
   const [generatedCode, setGeneratedCode] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Theme State - Default to light, but could check system preference
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Theme State - Default to Dark Mode (True)
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Toggle Dark Mode Class on body/root
   useEffect(() => {
