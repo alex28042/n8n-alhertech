@@ -112,9 +112,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoadWorkflow }) => {
       {/* Header */}
       <div className="p-8 pb-4">
         <h1 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">
-          FlowGen.
+          alher tech.
         </h1>
-        <p className="text-sm font-medium text-gray-400 dark:text-zinc-500 mt-1">Workflow Automation</p>
+        <p className="text-sm font-medium text-gray-400 dark:text-zinc-500 mt-1">AI workflows</p>
       </div>
 
       {/* Tabs */}
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoadWorkflow }) => {
              
              <div className="p-6 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
                 <p className="text-xs text-indigo-900 dark:text-indigo-200 mb-4 leading-relaxed font-medium">
-                  Describe what you want to automate, and FlowGen AI will build the entire workflow for you instantly.
+                  Describe what you want to automate, and alher tech AI will build the entire workflow for you instantly.
                 </p>
                 
                 <textarea

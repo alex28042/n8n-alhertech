@@ -1,5 +1,5 @@
 {
-  "name": "FlowGen AI - Workflow Automator",
+  "name": "alher tech AI workflows",
   "description": "A visual workflow automation tool inspired by n8n. Create, connect, and execute nodes including Webhooks, JavaScript functions, and Google Gemini AI agents.",
   "requestFramePermissions": []
 }
