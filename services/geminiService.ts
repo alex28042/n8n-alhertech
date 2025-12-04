@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Safely access process.env to avoid "process is not defined" error in pure browser environments
-const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY || '' : '';
+// Access process.env.API_KEY directly so Vite/Bundlers can replace it during build.
+// The previous runtime check for 'process' prevents Vite's string replacement from working in the browser.
+const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateAIResponse = async (
