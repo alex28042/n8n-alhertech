@@ -31,3 +31,11 @@ export interface AIModelConfig {
   model: string;
   temperature: number;
 }
+
+export interface WorkflowVersion {
+  id: string;
+  timestamp: number;
+  label: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}

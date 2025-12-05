@@ -11,13 +11,13 @@ import ReactFlow, {
   BackgroundVariant,
   Node,
 } from 'reactflow';
-import { Play, Loader2, BarChart2, Moon, Sun, Save, FolderOpen, FileCode, X, Copy, Download, Check } from 'lucide-react';
+import { Play, Loader2, BarChart2, Moon, Sun, Save, FolderOpen, FileCode, X, Copy, Download, Check, Clock, Trash2, RotateCcw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import Sidebar from './components/Sidebar';
 import CustomNode from './components/CustomNode';
 import ConfigPanel from './components/ConfigPanel';
-import { NodeType, NodeData } from './types';
+import { NodeType, NodeData, WorkflowVersion } from './types';
 import { generateAIResponse } from './services/geminiService';
 import { generatePythonCode } from './services/codeGenerator';
 
@@ -65,6 +65,10 @@ const AppContent = () => {
   const [generatedCode, setGeneratedCode] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // History/Versions State
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [workflowHistory, setWorkflowHistory] = useState<WorkflowVersion[]>([]);
+
   // Theme State - Default to Dark Mode (True)
   const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -88,6 +92,18 @@ const AppContent = () => {
       }))
     );
   }, [isDarkMode, setEdges]);
+
+  // Load history from local storage on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('flowgen_workflow_history');
+    if (savedHistory) {
+        try {
+            setWorkflowHistory(JSON.parse(savedHistory));
+        } catch (e) {
+            console.error("Failed to load history", e);
+        }
+    }
+  }, []);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ 
@@ -169,40 +185,42 @@ const AppContent = () => {
       }, 50);
   }, [isDarkMode, reactFlowInstance, setNodes, setEdges]);
 
-  // Save to LocalStorage
+  // Save Version
   const saveWorkflow = useCallback(() => {
-    const workflowData = {
-      nodes,
-      edges
-    };
-    try {
-      localStorage.setItem('flowgen_workflow', JSON.stringify(workflowData));
-      alert('Workflow saved successfully!');
-    } catch (e) {
-      console.error('Save failed', e);
-      alert('Failed to save workflow.');
-    }
-  }, [nodes, edges]);
+    const timestamp = Date.now();
+    // Simple prompt for now, could be a modal
+    let label = prompt("Name this version (optional):", `v-${new Date().toLocaleTimeString()}`);
+    if (label === null) return; // Cancelled
+    if (!label) label = `Auto-save ${new Date().toLocaleTimeString()}`;
 
-  // Load from LocalStorage
-  const loadSavedWorkflow = useCallback(() => {
-    const savedData = localStorage.getItem('flowgen_workflow');
-    if (savedData) {
-      try {
-        const { nodes: savedNodes, edges: savedEdges } = JSON.parse(savedData);
-        if (savedNodes && savedEdges) {
-            handleLoadWorkflow(savedNodes, savedEdges);
-        } else {
-            alert('Invalid workflow data found.');
-        }
-      } catch (e) {
-        console.error('Load failed', e);
-        alert('Failed to parse saved workflow.');
+    const newVersion: WorkflowVersion = {
+        id: timestamp.toString(),
+        timestamp,
+        label,
+        nodes,
+        edges
+    };
+
+    const updatedHistory = [newVersion, ...workflowHistory];
+    setWorkflowHistory(updatedHistory);
+    localStorage.setItem('flowgen_workflow_history', JSON.stringify(updatedHistory));
+    
+    // Also save current state as 'latest' fallback
+    localStorage.setItem('flowgen_workflow', JSON.stringify({ nodes, edges }));
+  }, [nodes, edges, workflowHistory]);
+
+  const deleteVersion = (id: string) => {
+      const updated = workflowHistory.filter(v => v.id !== id);
+      setWorkflowHistory(updated);
+      localStorage.setItem('flowgen_workflow_history', JSON.stringify(updated));
+  };
+
+  const restoreVersion = (version: WorkflowVersion) => {
+      if (confirm(`Restore version "${version.label}"? Unsaved changes will be lost.`)) {
+          handleLoadWorkflow(version.nodes, version.edges);
+          setShowHistoryModal(false);
       }
-    } else {
-      alert('No saved workflow found.');
-    }
-  }, [handleLoadWorkflow]);
+  };
 
   const handleExportCode = () => {
       const code = generatePythonCode(nodes, edges);
@@ -394,11 +412,11 @@ const AppContent = () => {
                         }`}
                     >
                         <Save size={18} strokeWidth={2.5} />
-                        <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded-md whitespace-nowrap z-50">Save</span>
+                        <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded-md whitespace-nowrap z-50">Save Version</span>
                     </button>
 
                     <button 
-                        onClick={loadSavedWorkflow}
+                        onClick={() => setShowHistoryModal(true)}
                         className={`p-2.5 rounded-full transition-all duration-200 group relative ${
                             isDarkMode 
                             ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white' 
@@ -406,7 +424,7 @@ const AppContent = () => {
                         }`}
                     >
                         <FolderOpen size={18} strokeWidth={2.5} />
-                        <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded-md whitespace-nowrap z-50">Load</span>
+                        <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white px-2 py-1 rounded-md whitespace-nowrap z-50">History / Open</span>
                     </button>
 
                     <button 
@@ -541,6 +559,78 @@ const AppContent = () => {
                 </div>
             )}
         </div>
+
+        {/* History / Versions Modal */}
+        {showHistoryModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className={`
+                    w-[600px] max-h-[85vh] flex flex-col rounded-[32px] shadow-2xl overflow-hidden border
+                    ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'}
+                `}>
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-zinc-800">
+                         <div className="flex items-center space-x-3">
+                            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Workflow History</h2>
+                                <p className="text-xs text-gray-500 dark:text-zinc-400">Restore previous versions of your work</p>
+                            </div>
+                         </div>
+                         <button 
+                            onClick={() => setShowHistoryModal(false)}
+                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+                         >
+                            <X size={20} />
+                         </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-auto p-4 space-y-3">
+                        {workflowHistory.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400 dark:text-zinc-600">
+                                <p className="text-sm font-medium">No saved versions found.</p>
+                                <p className="text-xs mt-1 opacity-70">Click "Save Version" to create a checkpoint.</p>
+                            </div>
+                        ) : (
+                            workflowHistory.map((version) => (
+                                <div key={version.id} className="group flex items-center justify-between p-4 rounded-2xl border border-transparent hover:border-gray-200 dark:hover:border-zinc-700 bg-gray-50 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 transition-all">
+                                    <div className="flex items-start space-x-4">
+                                        <div className="mt-1 w-2 h-2 rounded-full bg-gray-300 dark:bg-zinc-600 group-hover:bg-orange-500 transition-colors"></div>
+                                        <div>
+                                            <h4 className="font-bold text-sm text-gray-900 dark:text-white">{version.label}</h4>
+                                            <div className="flex items-center space-x-2 mt-1">
+                                                <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-mono">
+                                                    {new Date(version.timestamp).toLocaleString()}
+                                                </span>
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400 font-bold">
+                                                    {version.nodes.length} Nodes
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={() => restoreVersion(version)}
+                                            className="p-2 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border border-gray-100 dark:border-zinc-700 shadow-sm hover:scale-105 transition-transform"
+                                            title="Restore this version"
+                                        >
+                                            <RotateCcw size={16} />
+                                        </button>
+                                        <button 
+                                            onClick={() => deleteVersion(version.id)}
+                                            className="p-2 rounded-xl bg-white dark:bg-zinc-900 text-red-500 border border-gray-100 dark:border-zinc-700 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-105 transition-all"
+                                            title="Delete version"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* Export Modal Overlay */}
         {showExportModal && (
