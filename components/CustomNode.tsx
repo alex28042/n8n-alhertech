@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { NodeData, NodeType } from '../types';
-import { Zap, Bot, Bug, Code, Globe, Split, Clock } from 'lucide-react';
+import { Zap, Bot, Bug, Code, Globe, Split, Clock, Eye } from 'lucide-react';
 
 const icons = {
   [NodeType.WEBHOOK]: Zap,
@@ -32,6 +32,14 @@ const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
   const isSuccess = data.status === 'success';
   const isError = data.status === 'error';
   const isCondition = data.type === NodeType.CONDITION;
+
+  // Handler to open the modal via parent callback
+  const handleViewOutput = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent node selection
+    if (data.onViewOutput) {
+      data.onViewOutput(data.output, data.label);
+    }
+  };
 
   return (
     <div
@@ -66,14 +74,25 @@ const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
       {/* Output Preview (only if exists and minimal) */}
       {data.output && !isCondition && (
         <div className="px-5 pb-5">
-           <div className="bg-gray-50 dark:bg-black/40 rounded-xl p-3 border border-gray-100 dark:border-zinc-800/50">
+           <div className="relative group/output bg-gray-50 dark:bg-black/40 rounded-xl p-3 border border-gray-100 dark:border-zinc-800/50 transition-colors hover:border-gray-200 dark:hover:border-zinc-700">
               <div className="text-[9px] font-bold text-gray-400 dark:text-zinc-600 mb-1.5 uppercase tracking-wider flex items-center justify-between">
-                <span>Output</span>
+                <span>Output Preview</span>
                 {isSuccess && <span className="text-emerald-500">200 OK</span>}
+                {isError && <span className="text-rose-500">ERROR</span>}
               </div>
-              <div className="text-xs text-gray-600 dark:text-zinc-300 font-mono truncate">
+              
+              <div className="text-[10px] text-gray-600 dark:text-zinc-300 font-mono line-clamp-2 leading-relaxed">
                  {typeof data.output === 'object' ? JSON.stringify(data.output) : String(data.output)}
               </div>
+
+              {/* Hover Button to View Full Output */}
+              <button 
+                onClick={handleViewOutput}
+                className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-white dark:bg-zinc-800 text-gray-400 dark:text-zinc-400 opacity-0 group-hover/output:opacity-100 shadow-sm border border-gray-100 dark:border-zinc-700 hover:text-black dark:hover:text-white transition-all"
+                title="Inspect Output"
+              >
+                <Eye size={12} />
+              </button>
            </div>
         </div>
       )}
@@ -84,6 +103,12 @@ const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
             <div className={`rounded-xl p-2 text-center text-xs font-bold border ${data.output.result ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30'}`}>
                 {data.output.result ? 'PASSED (TRUE)' : 'FAILED (FALSE)'}
             </div>
+             <button 
+                onClick={handleViewOutput}
+                className="w-full mt-2 py-1.5 text-[10px] font-bold text-gray-400 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+              >
+                View Details
+              </button>
          </div>
       )}
 

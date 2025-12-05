@@ -20,6 +20,7 @@ import WorkflowHeader from '../components/workflow/WorkflowHeader';
 import HistoryModal from '../components/workflow/HistoryModal';
 import ExportModal from '../components/workflow/ExportModal';
 import AnalyticsPanel from '../components/workflow/AnalyticsPanel';
+import OutputModal from '../components/workflow/OutputModal'; // Import new modal
 
 // Hooks & Services
 import { useTheme } from '../hooks/useTheme';
@@ -37,30 +38,11 @@ const nodeTypes = {
   delay: CustomNode,
 };
 
-const initialNodes: Node<NodeData>[] = [
-  {
-    id: '1',
-    type: NodeType.WEBHOOK,
-    position: { x: 100, y: 100 },
-    data: { label: 'Start Trigger', type: NodeType.WEBHOOK, config: { mockData: '{"topic": "Artificial Intelligence", "tone": "Professional"}' } },
-  },
-  {
-    id: '2',
-    type: NodeType.AI_AGENT,
-    position: { x: 500, y: 150 },
-    data: { label: 'Generate Content', type: NodeType.AI_AGENT, config: { prompt: 'Write a short intro paragraph about the input topic in the specified tone.' } },
-  },
-];
-
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#71717a', strokeWidth: 2 } }
-];
-
 const WorkflowBuilderContent = () => {
   // --- State ---
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]); // Initialize empty, load in effect
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<Node<NodeData> | null>(null);
   
@@ -70,10 +52,67 @@ const WorkflowBuilderContent = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
   
+  // Output Modal State
+  const [outputModalData, setOutputModalData] = useState<{data: any, label: string} | null>(null);
+  
   // Custom Hooks
   const { isDarkMode, toggleTheme } = useTheme();
   const { isRunning, executionStats, runWorkflow } = useWorkflowExecution(nodes, edges, setNodes);
   const [workflowHistory, setWorkflowHistory] = useState<WorkflowVersion[]>([]);
+
+  // Callback to open output modal
+  const handleViewOutput = useCallback((data: any, label: string) => {
+    setOutputModalData({ data, label });
+  }, []);
+
+  // Initial Data with Handler
+  useEffect(() => {
+    // Only set initial nodes once to prevent reset loop
+    if (nodes.length === 0 && edges.length === 0) {
+        const initialNodes: Node<NodeData>[] = [
+            {
+              id: '1',
+              type: NodeType.WEBHOOK,
+              position: { x: 100, y: 100 },
+              data: { 
+                  label: 'Start Trigger', 
+                  type: NodeType.WEBHOOK, 
+                  config: { mockData: '{"topic": "Artificial Intelligence", "tone": "Professional"}' },
+                  onViewOutput: handleViewOutput // Inject handler
+              },
+            },
+            {
+              id: '2',
+              type: NodeType.AI_AGENT,
+              position: { x: 500, y: 150 },
+              data: { 
+                  label: 'Generate Content', 
+                  type: NodeType.AI_AGENT, 
+                  config: { prompt: 'Write a short intro paragraph about the input topic in the specified tone.' },
+                  onViewOutput: handleViewOutput // Inject handler
+              },
+            },
+          ];
+          
+          const initialEdges: Edge[] = [
+            { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#71717a', strokeWidth: 2 } }
+          ];
+          
+          setNodes(initialNodes);
+          setEdges(initialEdges);
+    }
+  }, []); // Run once
+
+  // Ensure ALL nodes (even restored ones) have the onViewOutput handler
+  useEffect(() => {
+      setNodes((nds) => nds.map(n => {
+          if (!n.data.onViewOutput) {
+              return { ...n, data: { ...n.data, onViewOutput: handleViewOutput } };
+          }
+          return n;
+      }));
+  }, [handleViewOutput, setNodes]);
+
 
   // --- Effects ---
   
@@ -134,22 +173,31 @@ const WorkflowBuilderContent = () => {
         id: `${type}-${Date.now()}`,
         type,
         position,
-        data: { label: `New ${type.replace('_', ' ')}`, type, config: {} },
+        data: { 
+            label: `New ${type.replace('_', ' ')}`, 
+            type, 
+            config: {},
+            onViewOutput: handleViewOutput // Ensure new nodes get the handler
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, handleViewOutput]
   );
 
   const updateNodeData = (id: string, newData: any) => {
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.id === id) return { ...node, data: newData };
+        if (node.id === id) {
+             // Preserve the handler when updating data
+             return { ...node, data: { ...newData, onViewOutput: handleViewOutput } };
+        }
         return node;
       })
     );
-    setSelectedNode((prev) => prev ? { ...prev, data: newData } : null);
+    // Update selected node but preserve handler
+    setSelectedNode((prev) => prev ? { ...prev, data: { ...newData, onViewOutput: handleViewOutput } } : null);
   };
 
   const deleteNode = (id: string) => {
@@ -165,12 +213,19 @@ const WorkflowBuilderContent = () => {
       animated: true,
       style: { stroke: isDarkMode ? '#71717a' : '#000000', strokeWidth: 2 }
     }));
+    
+    // Inject handler into loaded nodes
+    const injectedNodes = newNodes.map(n => ({
+        ...n,
+        data: { ...n.data, onViewOutput: handleViewOutput }
+    }));
+
     setTimeout(() => {
-      setNodes(newNodes);
+      setNodes(injectedNodes);
       setEdges(themeEdges);
       setTimeout(() => reactFlowInstance?.fitView(), 100);
     }, 50);
-  }, [isDarkMode, reactFlowInstance, setNodes, setEdges]);
+  }, [isDarkMode, reactFlowInstance, setNodes, setEdges, handleViewOutput]);
 
   // Actions
   const saveWorkflow = useCallback(() => {
@@ -179,18 +234,23 @@ const WorkflowBuilderContent = () => {
     if (label === null) return;
     if (!label) label = `Auto-save ${new Date().toLocaleTimeString()}`;
 
+    // Note: We don't save the onViewOutput function to localStorage as it's not serializable
+    const nodesToSave = nodes.map(n => {
+        const { onViewOutput, ...restData } = n.data;
+        return { ...n, data: restData };
+    });
+
     const newVersion: WorkflowVersion = {
       id: timestamp.toString(),
       timestamp,
       label,
-      nodes,
+      nodes: nodesToSave,
       edges
     };
 
     const updatedHistory = [newVersion, ...workflowHistory];
     setWorkflowHistory(updatedHistory);
     localStorage.setItem('flowgen_workflow_history', JSON.stringify(updatedHistory));
-    localStorage.setItem('flowgen_workflow', JSON.stringify({ nodes, edges }));
   }, [nodes, edges, workflowHistory]);
 
   const deleteVersion = (id: string) => {
@@ -292,6 +352,17 @@ const WorkflowBuilderContent = () => {
           code={generatedCode} 
           isDarkMode={isDarkMode}
         />
+
+        {/* Output Viewer Modal */}
+        {outputModalData && (
+            <OutputModal
+                isOpen={!!outputModalData}
+                onClose={() => setOutputModalData(null)}
+                data={outputModalData.data}
+                nodeLabel={outputModalData.label}
+                isDarkMode={isDarkMode}
+            />
+        )}
       </div>
     </div>
   );

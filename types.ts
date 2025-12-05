@@ -17,6 +17,7 @@ export interface NodeData {
   output?: any;
   status?: 'idle' | 'running' | 'success' | 'error';
   errorMessage?: string;
+  onViewOutput?: (output: any, label: string) => void;
 }
 
 export type WorkflowNode = Node<NodeData>;
