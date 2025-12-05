@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NodeType, NodeData } from '../types';
 import { Node, Edge } from 'reactflow';
-import { Zap, Bot, Bug, Code, Globe, Plus, LayoutTemplate, Box, ArrowRight, Play, Split, Sparkles, Loader2 } from 'lucide-react';
+import { Zap, Bot, Bug, Code, Globe, Plus, LayoutTemplate, Box, ArrowRight, Play, Split, Sparkles, Loader2, Clock } from 'lucide-react';
 import { generateWorkflowStructure } from '../services/geminiService';
 
 interface SidebarProps {
@@ -44,6 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoadWorkflow }) => {
     { type: NodeType.CONDITION, label: 'If / Else', icon: Split },
     { type: NodeType.JAVASCRIPT, label: 'Function', icon: Code },
     { type: NodeType.HTTP_REQUEST, label: 'HTTP Request', icon: Globe },
+    { type: NodeType.DELAY, label: 'Delay', icon: Clock },
     { type: NodeType.DEBUG, label: 'Debug', icon: Bug },
   ];
 

@@ -122,6 +122,20 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ selectedNode, updateNodeData,
              </div>
            )}
 
+            {selectedNode.data.type === NodeType.DELAY && (
+             <div className="space-y-3">
+                 <label className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Duration (Milliseconds)</label>
+                 <input
+                    type="number"
+                    value={config.duration || '1000'}
+                    onChange={(e) => handleConfigChange('duration', e.target.value)}
+                    className="w-full rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 focus:outline-none bg-gray-50 dark:bg-zinc-950/50 text-gray-900 dark:text-zinc-200 border-none transition-all"
+                    placeholder="1000"
+                 />
+                 <p className="text-[10px] text-gray-400 px-2">Wait for the specified time before continuing.</p>
+             </div>
+           )}
+
            {selectedNode.data.type === NodeType.CONDITION && (
              <div className="space-y-4">
                  <div className="space-y-2">

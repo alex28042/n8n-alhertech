@@ -6,7 +6,8 @@ export enum NodeType {
   DEBUG = 'debug',
   JAVASCRIPT = 'javascript',
   HTTP_REQUEST = 'http_request',
-  CONDITION = 'condition'
+  CONDITION = 'condition',
+  DELAY = 'delay'
 }
 
 export interface NodeData {

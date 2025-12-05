@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { NodeData, NodeType } from '../types';
-import { Zap, Bot, Bug, Code, Globe, Split } from 'lucide-react';
+import { Zap, Bot, Bug, Code, Globe, Split, Clock } from 'lucide-react';
 
 const icons = {
   [NodeType.WEBHOOK]: Zap,
@@ -10,6 +10,7 @@ const icons = {
   [NodeType.JAVASCRIPT]: Code,
   [NodeType.HTTP_REQUEST]: Globe,
   [NodeType.CONDITION]: Split,
+  [NodeType.DELAY]: Clock,
 };
 
 // Pastel/Clean accents for the icon background - Adjusted for dark mode compatibility
@@ -20,6 +21,7 @@ const iconBgColors = {
   [NodeType.JAVASCRIPT]: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
   [NodeType.HTTP_REQUEST]: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
   [NodeType.CONDITION]: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400',
+  [NodeType.DELAY]: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400',
 };
 
 const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {

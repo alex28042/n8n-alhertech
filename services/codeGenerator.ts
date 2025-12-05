@@ -29,6 +29,7 @@ export const generatePythonCode = (nodes: Node<NodeData>[], edges: Edge[]): stri
 
   let code = `import os
 import json
+import time
 import requests
 import google.generativeai as genai
 
@@ -143,6 +144,16 @@ def run_workflow():
         
         # Note: In a real Python script, you would branch execution here using 'if condition_result:'
         # This flat structure executes all nodes, but in FlowGen logic, it routes edges.
+`;
+        break;
+
+      case NodeType.DELAY:
+        const duration = config.duration || 1000;
+        code += `        # Delay Execution
+        delay_seconds = ${duration} / 1000.0
+        print(f"   ⏳ Sleeping for {delay_seconds} seconds...")
+        time.sleep(delay_seconds)
+        output = input_data
 `;
         break;
 
